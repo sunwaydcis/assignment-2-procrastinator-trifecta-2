@@ -21,11 +21,6 @@ data Booking = Booking
 -- 2. HELPER FUNCTIONS (Rubric: Functional Concepts, Polymorphism, Composition)
 -- =============================================================================
 
--- Helper: Polymorphic function to calculate the average of any list of Fractional numbers (a)
--- This explicitly demonstrates the use of Polymorphism via the (Fractional a) type class.
-calculateAverage :: (Fractional a) => [a] -> a
-calculateAverage xs = sum xs / fromIntegral (length xs)
-
 -- Helper: Convert string "15%" to double 0.15
 parsePercent :: String -> Double
 parsePercent str = 
@@ -127,18 +122,18 @@ main = do
             putStrLn "1. Which country has the highest number of bookings?"
             putStrLn $ "   Answer: " ++ topCountry ++ " (" ++ show count ++ " bookings)\n"
             
-            -- ANSWER 2
+                        -- ANSWER 2
             let (eName, ePrice, eDisc, eMargin, eFinal) = solveQ2 bookings
             putStrLn "2. Which hotel offers the most economical option?"
             putStrLn $ "   Answer: " ++ eName
-            putStrLn   "   Breakdown of Criteria:"
-            putStrLn $ "   a) Booking Price:      SGD " ++ show (round ePrice)
-            putStrLn $ "   b) Discount:           " ++ show (round (eDisc * 100)) ++ "%"
-            putStrLn $ "   c) Profit Margin:      " ++ show eMargin ++ " (" ++ show (round (eMargin * 100)) ++ "%)"
-            putStrLn $ "   d) Final Price Paid:   SGD " ++ show eFinal ++ "\n"
+            putStrLn   "   Breakdown of Criteria:"
+            putStrLn $ "   a) Booking Price:      SGD " ++ show (round ePrice :: Int)
+            putStrLn $ "   b) Discount:           " ++ show (round (eDisc * 100) :: Int) ++ "%"
+            putStrLn $ "   c) Profit Margin:      " ++ show eMargin ++ " (" ++ show (round (eMargin * 100) :: Int) ++ "%)"
+            putStrLn $ "   d) Final Price Paid:   SGD " ++ show eFinal ++ "\n"
 
             -- ANSWER Q3
             let (richHotel, profit) = solveQ3 bookings
             putStrLn "3. Which hotel is the most profitable?"
             putStrLn $ "   Answer: " ++ richHotel 
-            putStrLn $ "   (Total Profit Generated: SGD " ++ show (round profit) ++ ")"
+            putStrLn $ "   (Total Profit Generated: SGD " ++ show (round profit :: Int) ++ ")"

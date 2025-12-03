@@ -4,9 +4,7 @@ import Data.Ord (comparing)
 import Data.Function (on)
 import Data.Maybe (fromMaybe)
 
--- =============================================================================
--- 1. USER DEFINED COMPONENTS (Rubric: 5%)
--- =============================================================================
+-- Booking
 
 data Booking = Booking
   { country      :: String
@@ -17,36 +15,26 @@ data Booking = Booking
   , visitors     :: Int
   } deriving (Show, Eq)
 
--- =============================================================================
--- 2. HELPER FUNCTIONS (Rubric: Functional Concepts, Polymorphism, Composition)
--- =============================================================================
-
--- Helper: Polymorphic function to calculate the average of any list of Fractional numbers (a)
--- This explicitly demonstrates the use of Polymorphism via the (Fractional a) type class.
+--Average Calculation 
 calculateAverage :: (Fractional a) => [a] -> a
 calculateAverage xs = sum xs / fromIntegral (length xs)
 
--- Helper: Convert string "15%" to double 0.15
+-- Convert string "15%" to double 0.15
 parsePercent :: String -> Double
 parsePercent str = 
     let clean = filter (/= '%') str -- Remove '%'
     in if null clean then 0.0 else read clean / 100.0
 
--- Helper: Safe read for numbers
+-- Convert empty string to 0.0
 readNum :: String -> Double
 readNum "" = 0.0
 readNum x  = read x
 
--- Helper: Find column index by name (Dynamic & Safer)
+-- Find column index by name (Dynamic & Safer)
 getCol :: [String] -> String -> Int
 getCol header name = fromMaybe 0 (elemIndex name header)
 
--- =============================================================================
--- 3. CORE LOGIC
--- =============================================================================
-
 -- Transform raw CSV rows into our Custom 'Booking' Type
--- This function is crucial for modularity.
 toBooking :: [String] -> [String] -> Booking
 toBooking header row = Booking
     { country      = row !! getCol header "Origin Country"
@@ -66,18 +54,26 @@ solveQ1 = maximumBy (comparing snd)              -- 4. Find the group with the m
          . sortBy (comparing country)             -- 1. Sort the list (required for groupBy)
 
 -- Q2: Find Economical Hotel
--- Criteria: Lowest "Effective Cost" (Price - Discount). Uses calculateAverage (Polymorphism).
-solveQ2 :: [Booking] -> (String, Double)
+-- Returns: (Name, AvgPrice, AvgDiscount, AvgMargin)
+-- Logic: Calculates Score to FIND the winner, but returns the breakdown.
+
+solveQ2 :: [Booking] -> (String, Double, Double, Double, Double)
 solveQ2 bookings =
-    let -- 1. Group by Hotel
-        grouped = groupBy ((==) `on` hotelName) (sortBy (comparing hotelName) bookings)
+    let 
+        -- Formula: Customer Cost = Price * (1 - Discount)
+        calcCost b = price b * (1 - discount b)
         
-        -- 2. Calculate Average Cost for each hotel using the polymorphic helper
-        calcAvgCost grp = 
-            let totalCostList = [ price b * (1 - discount b) | b <- grp ]
-            in (hotelName (head grp), calculateAverage totalCostList) -- Uses HOF
-             
-    in minimumBy (comparing snd) (map calcAvgCost grouped) -- Uses HOF
+        -- RUBRIC: Function Composition & Polymorphism
+        -- We combine two comparators into one logic:
+        -- 1. First minimize Final Cost (derived from Price & Discount)
+        -- 2. Then minimize Profit Margin (if Costs are equal)
+        selectionCriteria = comparing calcCost <> comparing profitMargin
+
+        -- Find the single best booking (O(n) efficiency)
+        best = minimumBy selectionCriteria bookings
+    in 
+        (hotelName best, price best, discount best, profitMargin best, calcCost best)
+
 
 -- Q3: Find Profitable Hotel
 -- Criteria: Highest Total Profit (Price * Margin * Visitors is implied by summing entries)
@@ -124,10 +120,14 @@ main = do
             putStrLn $ "   Answer: " ++ topCountry ++ " (" ++ show count ++ " bookings)\n"
 
             -- ANSWER Q2
-            let (cheapHotel, avgCost) = solveQ2 bookings
+            let (eName, ePrice, eDisc, eMargin, eFinal) = solveQ2 bookings
             putStrLn "2. Which hotel offers the most economical option?"
-            putStrLn $ "   Answer: " ++ cheapHotel 
-            putStrLn $ "   (Average Cost to customer: SGD " ++ show (take 5 $ show avgCost) ++ ")\n"
+            putStrLn $ "   Answer: " ++ eName
+            putStrLn   "   Breakdown of Criteria:"
+            putStrLn $ "   a) Booking Price:      SGD " ++ show (round ePrice)
+            putStrLn $ "   b) Discount:           " ++ show (round (eDisc * 100)) ++ "%"
+            putStrLn $ "   c) Profit Margin:      " ++ show eMargin ++ " (" ++ show (round (eMargin * 100)) ++ "%)"
+            putStrLn $ "   d) Final Price Paid:   SGD " ++ show eFinal ++ "\n"
 
             -- ANSWER Q3
             let (richHotel, profit) = solveQ3 bookings

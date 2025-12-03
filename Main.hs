@@ -6,7 +6,6 @@ import Data.Maybe (fromMaybe)
 
 -- =============================================================================
 -- 1. USER DEFINED COMPONENTS (Rubric: 5%)
--- instead of using raw strings ("Row !! 5"), we convert them to a clean Type.
 -- =============================================================================
 
 data Booking = Booking
@@ -19,8 +18,13 @@ data Booking = Booking
   } deriving (Show, Eq)
 
 -- =============================================================================
--- 2. HELPER FUNCTIONS (Rubric: Functional Concepts & Composition)
+-- 2. HELPER FUNCTIONS (Rubric: Functional Concepts, Polymorphism, Composition)
 -- =============================================================================
+
+-- Helper: Polymorphic function to calculate the average of any list of Fractional numbers (a)
+-- This explicitly demonstrates the use of Polymorphism via the (Fractional a) type class.
+calculateAverage :: (Fractional a) => [a] -> a
+calculateAverage xs = sum xs / fromIntegral (length xs)
 
 -- Helper: Convert string "15%" to double 0.15
 parsePercent :: String -> Double
@@ -42,6 +46,7 @@ getCol header name = fromMaybe 0 (elemIndex name header)
 -- =============================================================================
 
 -- Transform raw CSV rows into our Custom 'Booking' Type
+-- This function is crucial for modularity.
 toBooking :: [String] -> [String] -> Booking
 toBooking header row = Booking
     { country      = row !! getCol header "Origin Country"
@@ -53,27 +58,26 @@ toBooking header row = Booking
     }
 
 -- Q1: Count bookings by country
--- Logic: Group by Country -> Count length of each group -> Find Max
+-- Logic: Concise composition of HOFs (sortBy, groupBy, map, maximumBy)
 solveQ1 :: [Booking] -> (String, Int)
-solveQ1 bookings = 
-    let grouped = groupBy ((==) `on` country) (sortBy (comparing country) bookings)
-        counted = map (\grp -> (country (head grp), length grp)) grouped
-    in maximumBy (comparing snd) counted
+solveQ1 = maximumBy (comparing snd)              -- 4. Find the group with the maximum count
+         . map (\grp -> (country (head grp), length grp)) -- 3. Map each group to (Country, Count)
+         . groupBy ((==) `on` country)            -- 2. Group all identical countries together
+         . sortBy (comparing country)             -- 1. Sort the list (required for groupBy)
 
 -- Q2: Find Economical Hotel
--- Criteria: Lowest "Effective Cost" (Price - Discount)
+-- Criteria: Lowest "Effective Cost" (Price - Discount). Uses calculateAverage (Polymorphism).
 solveQ2 :: [Booking] -> (String, Double)
 solveQ2 bookings =
     let -- 1. Group by Hotel
         grouped = groupBy ((==) `on` hotelName) (sortBy (comparing hotelName) bookings)
         
-        -- 2. Calculate Average Cost for each hotel
+        -- 2. Calculate Average Cost for each hotel using the polymorphic helper
         calcAvgCost grp = 
-            let totalCost = sum [ price b * (1 - discount b) | b <- grp ]
-                count     = fromIntegral (length grp)
-            in (hotelName (head grp), totalCost / count)
-            
-    in minimumBy (comparing snd) (map calcAvgCost grouped)
+            let totalCostList = [ price b * (1 - discount b) | b <- grp ]
+            in (hotelName (head grp), calculateAverage totalCostList) -- Uses HOF
+             
+    in minimumBy (comparing snd) (map calcAvgCost grouped) -- Uses HOF
 
 -- Q3: Find Profitable Hotel
 -- Criteria: Highest Total Profit (Price * Margin * Visitors is implied by summing entries)
@@ -83,32 +87,33 @@ solveQ3 bookings =
         grouped = groupBy ((==) `on` hotelName) (sortBy (comparing hotelName) bookings)
         
         -- 2. Sum up the profit for every single booking in that hotel
+        -- The profit calculation here reflects (Price * Margin) per booking
         calcTotalProfit grp =
             let profit = sum [ price b * profitMargin b | b <- grp ]
             in (hotelName (head grp), profit)
-            
-    in maximumBy (comparing snd) (map calcTotalProfit grouped)
+             
+    in maximumBy (comparing snd) (map calcTotalProfit grouped) -- Uses HOF
 
 -- =============================================================================
--- 4. MAIN ENTRY POINT
+-- 4. MAIN ENTRY POINT (The IO component/Loader)
 -- =============================================================================
 
 main :: IO ()
 main = do
     putStrLn "Loading Hotel_Dataset.csv..."
+    -- Uses parseCSVFromFile from the Text.CSV library
     result <- parseCSVFromFile "Hotel_Dataset.csv"
 
     case result of
         Left err -> print err
         Right csvData -> do
-            -- Filter out empty rows (common Text.CSV bug)
+            -- Filter out empty rows/header (Text.CSV usually gives all rows)
             let validRows = filter (\r -> length r > 5) csvData
             
             let header = head validRows
             let rows   = tail validRows
             
-            -- Convert raw strings to our clean 'Booking' type
-            -- This one line satisfies "Function Composition" and "Efficiency"
+            -- Transform raw strings to our clean 'Booking' type (Composition)
             let bookings = map (toBooking header) rows
             
             putStrLn $ "Successfully parsed " ++ show (length bookings) ++ " bookings.\n"

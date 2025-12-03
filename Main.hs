@@ -59,12 +59,11 @@ toBooking header row = Booking
 
 -- Q1: Country with the highest bookings(destination)
 -- Using Higher Order Functions (sortBy, groupBy, map, maximumBy)
--- Question requires us to find country(String) and its count(Int)
 solveQ1 :: [Booking] -> (String, Int)
-solveQ1 = maximumBy (comparing snd)              -- 4. Find the group with the maximum count
-         . map (\grp -> (country (head grp), length grp)) -- 3. Map each group to (Country, Count)
-         . groupBy ((==) `on` country)            -- 2. Group all identical countries together
-         . sortBy (comparing country)             -- 1. Sort the list
+solveQ1 = maximumBy (comparing snd)              
+         . map (\grp -> (country (head grp), length grp)) 
+         . groupBy ((==) `on` country)            
+         . sortBy (comparing country)             
 
 -- Q2: Find Economical Hotel
 -- Criteria: Lowest "Effective Cost" (Price - Discount). Uses calculateAverage (Polymorphism).
@@ -74,7 +73,6 @@ solveQ2 bookings =
         -- Formula: Customer Cost = Price * (1 - Discount)
         calcCost b = price b * (1 - discount b)
         
-        -- RUBRIC: Function Composition & Polymorphism
         -- We combine two comparators into one logic:
         -- 1. First minimize Final Cost (derived from Price & Discount)
         -- 2. Then minimize Profit Margin (if Costs are equal)
@@ -86,16 +84,16 @@ solveQ2 bookings =
         (hotelName best, price best, discount best, profitMargin best, calcCost best)
 
 -- Q3: Find Profitable Hotel
--- Criteria: Highest Total Profit (Price * Margin * Visitors is implied by summing entries)
+-- CORRECTED LOGIC: Now includes the 'visitors' field as required by the assignment.
 solveQ3 :: [Booking] -> (String, Double)
 solveQ3 bookings =
     let -- 1. Group by Hotel
         grouped = groupBy ((==) `on` hotelName) (sortBy (comparing hotelName) bookings)
         
-        -- 2. Sum up the profit for every single booking in that hotel
-        -- The profit calculation here reflects (Price * Margin) per booking
+        -- 2. Sum up the profit for every single booking in that hotel.
+        --    Profit contribution = Price * Profit Margin * Number of Visitors
         calcTotalProfit grp =
-            let profit = sum [ price b * profitMargin b | b <- grp ]
+            let profit = sum [ price b * profitMargin b * fromIntegral (visitors b) | b <- grp ]
             in (hotelName (head grp), profit)
              
     in maximumBy (comparing snd) (map calcTotalProfit grouped) -- Uses HOF
@@ -133,11 +131,11 @@ main = do
             let (eName, ePrice, eDisc, eMargin, eFinal) = solveQ2 bookings
             putStrLn "2. Which hotel offers the most economical option?"
             putStrLn $ "   Answer: " ++ eName
-            putStrLn   "   Breakdown of Criteria:"
-            putStrLn $ "   a) Booking Price:      SGD " ++ show (round ePrice)
-            putStrLn $ "   b) Discount:           " ++ show (round (eDisc * 100)) ++ "%"
-            putStrLn $ "   c) Profit Margin:      " ++ show eMargin ++ " (" ++ show (round (eMargin * 100)) ++ "%)"
-            putStrLn $ "   d) Final Price Paid:   SGD " ++ show eFinal ++ "\n"
+            putStrLn   "   Breakdown of Criteria:"
+            putStrLn $ "   a) Booking Price:      SGD " ++ show (round ePrice)
+            putStrLn $ "   b) Discount:           " ++ show (round (eDisc * 100)) ++ "%"
+            putStrLn $ "   c) Profit Margin:      " ++ show eMargin ++ " (" ++ show (round (eMargin * 100)) ++ "%)"
+            putStrLn $ "   d) Final Price Paid:   SGD " ++ show eFinal ++ "\n"
 
             -- ANSWER Q3
             let (richHotel, profit) = solveQ3 bookings

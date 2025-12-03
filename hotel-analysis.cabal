@@ -1,16 +1,14 @@
-cabal-version:      3.0
-name:               hotel-analysis
-version:            0.1.0.0
-build-type:         Simple
+cabal-version:       2.4
+name:                hotel-analysis
+version:             1.0.0.0
+author:              Team
+license:             MIT
+build-type:          Simple
 
 executable hotel-analysis
-  main-is:            Main.hs
-  build-depends:      base ^>=4.18.0.0
-                    , cassava ^>=0.5.3
-                    , bytestring ^>=0.11.5
-                    , text ^>=2.0.2
-                    , containers ^>=0.6.7
-                    , vector ^>=0.13.0
-  ghc-options:        -Wall
-  default-language:   Haskell2010
-
+  main-is:             Main.hs
+  build-depends:       base >=4.14 && <5,
+                       csv >=0.1.2
+  hs-source-dirs:      .
+  default-language:    Haskell2010
+  ghc-options:         -Wall

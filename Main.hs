@@ -60,15 +60,12 @@ solveQ1 = maximumBy (comparing snd)
 solveQ2 :: [Booking] -> (String, Double, Double, Double, Double)
 solveQ2 bookings =
     let 
-        -- Formula: Customer Cost = Price * (1 - Discount)
-        calcCost b = price b * (1 - discount b)
         
-        -- 2. Calculate Average Cost for each hotel using the polymorphic helper
-        calcAvgCost grp = 
-            let totalCostList = [ price b * (1 - discount b) | b <- grp ]
-            in (hotelName (head grp), calculateAverage totalCostList) -- Uses HOF
-             
-    in minimumBy (comparing snd) (map calcAvgCost grouped) -- Uses HOF
+        calcCost b = price b * (1 - discount b)
+        selectionCriteria = comparing calcCost <> comparing profitMargin
+        best = minimumBy selectionCriteria bookings
+    in 
+        (hotelName best, price best, discount best, profitMargin best, calcCost best)
 
 -- Q3: Find Profitable Hotel
 -- CORRECTED LOGIC: Includes visitors as required by the assignment question.

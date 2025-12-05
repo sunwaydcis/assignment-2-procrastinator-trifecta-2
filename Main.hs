@@ -29,7 +29,6 @@ parsePercent str =
 
 -- Helper: Safely converts a string to a Double, treating empty fields as 0.0 to prevent errors.
 readNum :: String -> Double
-readNum :: String -> Double
 readNum "" = 0.0
 readNum x  = read x
 

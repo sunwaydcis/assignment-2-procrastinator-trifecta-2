@@ -5,29 +5,30 @@ import Data.Function (on)
 import Data.Maybe (fromMaybe)
 
 -- =============================================================================
--- 1. USER DEFINED COMPONENTS (Rubric: 5%)
+-- 1. USER DEFINED COMPONENTS (Defining our primary data structure)
 -- =============================================================================
 
 data Booking = Booking
   { country      :: String
   , hotelName    :: String
   , price        :: Double
-  , discount     :: Double -- We will store 5% as 0.05
+  , discount     :: Double -- Stores the discount as a decimal
   , profitMargin :: Double
   , visitors     :: Int
   } deriving (Show, Eq)
 
 -- =============================================================================
--- 2. HELPER FUNCTIONS (Rubric: Functional Concepts, Polymorphism, Composition)
+-- 2. HELPER FUNCTIONS 
 -- =============================================================================
 
--- Helper: Convert string "15%" to double 0.15
+-- Helper: Converts a percentage string (like "15%") from the CSV into a clean decimal number (0.15)
 parsePercent :: String -> Double
 parsePercent str = 
     let clean = filter (/= '%') str -- Remove '%'
     in if null clean then 0.0 else read clean / 100.0
 
--- Helper: Safe read for numbers
+-- Helper: Safely converts a string to a Double, treating empty fields as 0.0 to prevent errors.
+readNum :: String -> Double
 readNum :: String -> Double
 readNum "" = 0.0
 readNum x  = read x
@@ -37,11 +38,11 @@ getCol :: [String] -> String -> Int
 getCol header name = fromMaybe 0 (elemIndex name header)
 
 -- =============================================================================
--- 3. CORE LOGIC
+-- 3. CORE LOGIC (Where we process the data to answer the questions)
 -- =============================================================================
 
 -- Method to change raw CSV rows into a custom 'Booking' Type
--- This allows for modularity
+--For modularity
 toBooking :: [String] -> [String] -> Booking
 toBooking header row = Booking
     { country      = row !! getCol header "Destination Country"
@@ -65,20 +66,18 @@ solveQ1 = maximumBy (comparing snd)
 solveQ2 :: [Booking] -> (String, Double, Double, Double, Double)
 solveQ2 bookings =
     let 
-        -- Formula: Customer Cost = Price * (1 - Discount)
+        --Formula: Calculates the final cost the customer pays after discount
         calcCost b = price b * (1 - discount b)
         
-        -- We combine two comparators into one logic:
-        -- 1. First minimize Final Cost (derived from Price & Discount)
-        -- 2. Then minimize Profit Margin (if Costs are equal)
+        --Combines two comparison rules: minimize final cost, then minimize profit margin if costs are equal.
         selectionCriteria = comparing calcCost <> comparing profitMargin
 
-        -- Find the single best booking (O(n) efficiency)
+        --Finds the single best booking (most economical deal).
         best = minimumBy selectionCriteria bookings
     in 
         (hotelName best, price best, discount best, profitMargin best, calcCost best)
 
--- Q3: Find Profitable Hotel
+-- Q3: Find the most Profitable Hotel
 -- CORRECTED LOGIC: Now includes the 'visitors' field as required by the assignment.
 solveQ3 :: [Booking] -> (String, Double)
 solveQ3 bookings =
@@ -94,25 +93,25 @@ solveQ3 bookings =
     in maximumBy (comparing snd) (map calcTotalProfit grouped) -- Uses HOF
 
 -- =============================================================================
--- 4. MAIN ENTRY POINT (The IO component/Loader)
+-- 4. EXECUTION AND I/O MANAGEMENT (CSV Data Loading and Result Display)
 -- =============================================================================
 
 main :: IO ()
 main = do
     putStrLn "Loading Hotel_Dataset.csv..."
-    -- Uses parseCSVFromFile from the Text.CSV library
+    --Attempts to load the data from the CSV file using the Text.CSV library
     result <- parseCSVFromFile "Hotel_Dataset.csv"
 
     case result of
         Left err -> print err
         Right csvData -> do
-            -- Filter out empty rows/header (Text.CSV usually gives all rows)
+            -- Filters out bad or empty rows, keeping only valid data for processing.
             let validRows = filter (\r -> length r > 5) csvData
             
-            let header = head validRows
-            let rows   = tail validRows
+            let header = head validRows -- Extracts the column names
+            let rows   = tail validRows -- Gets the actual data rows
             
-            -- Transform raw strings to our clean 'Booking' type (Composition)
+            -- Applies the 'toBooking' function to every row in the dataset (Function Composition).
             let bookings = map (toBooking header) rows
             
             putStrLn $ "Successfully parsed " ++ show (length bookings) ++ " bookings.\n"
